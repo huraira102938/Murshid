@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "297239729740",
+    "project_id": "murshid-e3369",
+    "storage_bucket": "murshid-e3369.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:297239729740:android:83fb205b4d5683233206e9",
+        "android_client_info": {
+          "package_name": "com.huraira.murshid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBeVaZjCfsrhf0EEwgigKoHewRA9w6O2ss"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
