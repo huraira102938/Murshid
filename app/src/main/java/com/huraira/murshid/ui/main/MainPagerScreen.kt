@@ -110,18 +110,27 @@ fun MainPagerScreen(navController: NavHostController) {
                         navController.navigate(Screen.WallpaperDetail.createRoute(id))
                     },
                     onShare = { shareApp() },
-                    onAbout = { navController.navigate(Screen.About.route) }
+                    onAbout = { navController.navigate(Screen.About.route) },
+                    // region ADMIN — remove before Play Store release
+                    onAdmin = { navController.navigate(Screen.AdminHome.route) }
+                    // endregion
                 )
                 1 -> LibraryScreen(
                     onShare = { shareApp() },
-                    onAbout = { navController.navigate(Screen.About.route) }
+                    onAbout = { navController.navigate(Screen.About.route) },
+                    // region ADMIN — remove before Play Store release
+                    onAdmin = { navController.navigate(Screen.AdminHome.route) }
+                    // endregion
                 )
                 2 -> UpdatesScreen(
                     onUpdateClick = { id ->
                         navController.navigate(Screen.UpdateDetail.createRoute(id))
                     },
                     onShare = { shareApp() },
-                    onAbout = { navController.navigate(Screen.About.route) }
+                    onAbout = { navController.navigate(Screen.About.route) },
+                    // region ADMIN — remove before Play Store release
+                    onAdmin = { navController.navigate(Screen.AdminHome.route) }
+                    // endregion
                 )
             }
         }

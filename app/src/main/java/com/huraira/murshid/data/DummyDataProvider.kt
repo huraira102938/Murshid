@@ -5,9 +5,28 @@ import com.huraira.murshid.data.model.LibraryItem
 import com.huraira.murshid.data.model.UpdateItem
 import com.huraira.murshid.data.model.WallpaperItem
 
+/**
+ * In-memory data source for the app.
+ *
+ * Backing lists are mutable so admin create/delete actions (see the `admin` package)
+ * can mutate them directly. This is a stand-in for the real Firestore/R2 backend —
+ * repositories are the only thing that should ever call the mutation functions below,
+ * so swapping this out later doesn't require touching any UI code.
+ */
 object DummyDataProvider {
 
-    fun getWallpapers(): List<WallpaperItem> = listOf(
+    // Categories are managed independently from wallpapers (admin can add/remove them).
+    // Seeded with a mix of populated and one empty category for testing.
+    private val categoriesStore = mutableListOf(
+        "Discipline",
+        "Resilience",
+        "Focus",
+        "Leadership",
+        "Patience",
+        "New Drops"
+    )
+
+    private val wallpapersStore = mutableListOf(
         WallpaperItem("w1", "Unshaken", "https://picsum.photos/seed/murshid1/720/1280", "Discipline"),
         WallpaperItem("w2", "Rise Again", "https://picsum.photos/seed/murshid2/720/1280", "Resilience"),
         WallpaperItem("w3", "Silent Storm", "https://picsum.photos/seed/murshid3/720/1280", "Focus"),
@@ -17,12 +36,12 @@ object DummyDataProvider {
         WallpaperItem("w7", "Command Yourself", "https://picsum.photos/seed/murshid7/720/1280", "Leadership"),
         WallpaperItem("w8", "Quiet Power", "https://picsum.photos/seed/murshid8/720/1280", "Focus"),
         WallpaperItem("w9", "Built to Last", "https://picsum.photos/seed/murshid9/720/1280", "Discipline"),
-        WallpaperItem("w10", "Forward Only", "https://picsum.photos/seed/murshid10/720/1280", "Momentum"),
+        WallpaperItem("w10", "Forward Only", "https://picsum.photos/seed/murshid10/720/1280", "Resilience"),
         WallpaperItem("w11", "Unshaken Resolve", "android.resource://com.huraira.murshid/drawable/imran_khan_1", "Leadership"),
         WallpaperItem("w12", "The Long Road", "android.resource://com.huraira.murshid/drawable/imran_khan_2", "Resilience"),
     )
 
-    fun getLibraryItems(): List<LibraryItem> = listOf(
+    private val libraryItemsStore = mutableListOf(
         LibraryItem(
             id = "l1",
             type = LibraryContentType.QUOTE,
@@ -75,7 +94,7 @@ object DummyDataProvider {
         ),
     )
 
-    fun getUpdates(): List<UpdateItem> = listOf(
+    private val updatesStore = mutableListOf(
         UpdateItem(
             id = "u1",
             title = "New Wallpaper Collection: Discipline",
@@ -122,4 +141,54 @@ object DummyDataProvider {
                     "experience."
         ),
     )
+
+    // ---- Reads ----
+
+    fun getWallpapers(): List<WallpaperItem> = wallpapersStore.toList()
+    fun getLibraryItems(): List<LibraryItem> = libraryItemsStore.toList()
+    fun getUpdates(): List<UpdateItem> = updatesStore.toList()
+    fun getCategories(): List<String> = categoriesStore.toList()
+
+    // ---- Admin mutations (called only from repositories, never directly from UI) ----
+
+    fun addWallpaper(item: WallpaperItem) {
+        wallpapersStore.add(0, item)
+    }
+
+    fun removeWallpaper(id: String) {
+        wallpapersStore.removeAll { it.id == id }
+    }
+
+    fun addLibraryItem(item: LibraryItem) {
+        libraryItemsStore.add(0, item)
+    }
+
+    fun removeLibraryItem(id: String) {
+        libraryItemsStore.removeAll { it.id == id }
+    }
+
+    fun addUpdate(item: UpdateItem) {
+        updatesStore.add(0, item)
+    }
+
+    fun removeUpdate(id: String) {
+        updatesStore.removeAll { it.id == id }
+    }
+
+    fun addCategory(name: String) {
+        if (categoriesStore.none { it.equals(name, ignoreCase = true) }) {
+            categoriesStore.add(name)
+        }
+    }
+
+    /**
+     * Removes a category and cascades: every wallpaper tagged with it is deleted too.
+     * Callers (see [com.huraira.murshid.data.repository.CategoryRepository]) are
+     * responsible for the "at least one category must remain" rule and the password
+     * check before calling this.
+     */
+    fun removeCategory(name: String) {
+        categoriesStore.removeAll { it.equals(name, ignoreCase = true) }
+        wallpapersStore.removeAll { it.category.equals(name, ignoreCase = true) }
+    }
 }

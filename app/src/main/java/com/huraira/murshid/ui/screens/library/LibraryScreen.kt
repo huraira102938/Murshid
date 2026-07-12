@@ -28,6 +28,9 @@ import com.huraira.murshid.viewmodel.LibraryViewModel
 fun LibraryScreen(
     onShare: () -> Unit,
     onAbout: () -> Unit,
+    // region ADMIN — remove before Play Store release
+    onAdmin: (() -> Unit)? = null,
+    // endregion
     viewModel: LibraryViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -48,7 +51,10 @@ fun LibraryScreen(
             MurshidTopBar(
                 title = "Murshid Library",
                 onShare = onShare,
-                onAbout = onAbout
+                onAbout = onAbout,
+                // region ADMIN — remove before Play Store release
+                onAdmin = onAdmin
+                // endregion
             )
         }
     ) { innerPadding ->

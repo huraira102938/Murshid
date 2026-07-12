@@ -56,7 +56,7 @@ fun WallpaperDetailScreen(
     viewModel: WallpapersViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val wallpapers = uiState.wallpapers
+    val wallpapers = uiState.allWallpapers
     val startIndex = remember(wallpaperId) {
         wallpapers.indexOfFirst { it.id == wallpaperId }.coerceAtLeast(0)
     }

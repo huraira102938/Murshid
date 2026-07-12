@@ -15,6 +15,14 @@ import com.huraira.murshid.ui.main.MainPagerScreen
 import com.huraira.murshid.ui.screens.about.AboutScreen
 import com.huraira.murshid.ui.screens.updates.UpdateDetailScreen
 import com.huraira.murshid.ui.screens.wallpapers.WallpaperDetailScreen
+// region ADMIN — remove before Play Store release
+import com.huraira.murshid.ui.screens.admin.AdminCategoriesScreen
+import com.huraira.murshid.ui.screens.admin.AdminHomeScreen
+import com.huraira.murshid.ui.screens.admin.AdminLibraryScreen
+import com.huraira.murshid.ui.screens.admin.AdminNotificationsScreen
+import com.huraira.murshid.ui.screens.admin.AdminUpdatesScreen
+import com.huraira.murshid.ui.screens.admin.AdminWallpapersScreen
+// endregion
 
 @Composable
 fun MurshidNavHost(navController: NavHostController) {
@@ -65,5 +73,64 @@ fun MurshidNavHost(navController: NavHostController) {
         ) {
             AboutScreen(onBack = { navController.popBackStack() })
         }
+
+        // region ADMIN — remove before Play Store release
+        composable(
+            route = Screen.AdminHome.route,
+            enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
+            exitTransition = { slideOutHorizontally(tween(200)) { it / 3 } + fadeOut(tween(200)) }
+        ) {
+            AdminHomeScreen(
+                onBack = { navController.popBackStack() },
+                onWallpapers = { navController.navigate(Screen.AdminWallpapers.route) },
+                onLibrary = { navController.navigate(Screen.AdminLibrary.route) },
+                onUpdates = { navController.navigate(Screen.AdminUpdates.route) },
+                onNotifications = { navController.navigate(Screen.AdminNotifications.route) }
+            )
+        }
+
+        composable(
+            route = Screen.AdminWallpapers.route,
+            enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
+            exitTransition = { slideOutHorizontally(tween(200)) { it / 3 } + fadeOut(tween(200)) }
+        ) {
+            AdminWallpapersScreen(
+                onBack = { navController.popBackStack() },
+                onManageCategories = { navController.navigate(Screen.AdminCategories.route) }
+            )
+        }
+
+        composable(
+            route = Screen.AdminCategories.route,
+            enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
+            exitTransition = { slideOutHorizontally(tween(200)) { it / 3 } + fadeOut(tween(200)) }
+        ) {
+            AdminCategoriesScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Screen.AdminLibrary.route,
+            enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
+            exitTransition = { slideOutHorizontally(tween(200)) { it / 3 } + fadeOut(tween(200)) }
+        ) {
+            AdminLibraryScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Screen.AdminUpdates.route,
+            enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
+            exitTransition = { slideOutHorizontally(tween(200)) { it / 3 } + fadeOut(tween(200)) }
+        ) {
+            AdminUpdatesScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Screen.AdminNotifications.route,
+            enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
+            exitTransition = { slideOutHorizontally(tween(200)) { it / 3 } + fadeOut(tween(200)) }
+        ) {
+            AdminNotificationsScreen(onBack = { navController.popBackStack() })
+        }
+        // endregion
     }
 }

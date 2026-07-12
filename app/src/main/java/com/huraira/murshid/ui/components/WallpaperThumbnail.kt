@@ -2,8 +2,9 @@ package com.huraira.murshid.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -28,10 +29,12 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.WallpaperItem
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WallpaperThumbnail(
     wallpaper: WallpaperItem,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -47,9 +50,10 @@ fun WallpaperThumbnail(
             .aspectRatio(0.7f)
             .scale(scale)
             .clip(RoundedCornerShape(16.dp))
-            .clickable(
+            .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,
+                onLongClick = onLongClick,
                 onClick = onClick
             )
     ) {

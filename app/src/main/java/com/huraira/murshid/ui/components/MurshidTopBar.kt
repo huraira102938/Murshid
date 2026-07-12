@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
@@ -41,6 +42,9 @@ fun MurshidTopBar(
     onShare: (() -> Unit)? = null,
     onRate: (() -> Unit)? = null,
     onAbout: (() -> Unit)? = null,
+    // region ADMIN — remove before Play Store release
+    onAdmin: (() -> Unit)? = null,
+    // endregion
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -78,7 +82,7 @@ fun MurshidTopBar(
             }
         },
         actions = {
-            if (onShare != null || onRate != null || onAbout != null) {
+            if (onShare != null || onRate != null || onAbout != null || onAdmin != null) {
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(
                         imageVector = Icons.Filled.MoreVert,
@@ -120,6 +124,18 @@ fun MurshidTopBar(
                             }
                         )
                     }
+                    // region ADMIN — remove before Play Store release
+                    if (onAdmin != null) {
+                        DropdownMenuItem(
+                            text = { Text("Admin") },
+                            leadingIcon = { Icon(Icons.Filled.AdminPanelSettings, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                onAdmin()
+                            }
+                        )
+                    }
+                    // endregion
                 }
             }
         },
