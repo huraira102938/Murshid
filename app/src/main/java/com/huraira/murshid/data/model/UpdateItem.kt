@@ -8,5 +8,6 @@ data class UpdateItem(
     val summary: String,
     val fullContent: String,
     val detailImageUrl: String? = null,
-    val youtubeVideoId: String? = null
+    val youtubeVideoId: String? = null,
+    val createdAt: Long = 0L
 )

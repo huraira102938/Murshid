@@ -17,7 +17,9 @@ data class AdminWallpapersUiState(
     val allWallpapers: List<WallpaperItem> = emptyList(),
     val categories: List<String> = emptyList(),
     val selectedCategory: String? = null,
-    val isSubmitting: Boolean = false
+    val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
+    val errorMessage: String? = null
 ) {
     /** null selectedCategory means "All". */
     val visibleWallpapers: List<WallpaperItem>
@@ -42,14 +44,20 @@ class AdminWallpapersViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            val wallpapers = wallpaperRepository.getAll()
-            val categories = categoryRepository.getAll()
-            _uiState.update {
-                it.copy(
-                    allWallpapers = wallpapers,
-                    categories = categories,
-                    selectedCategory = it.selectedCategory?.takeIf { c -> c in categories }
-                )
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                val wallpapers = wallpaperRepository.getAll()
+                val categories = categoryRepository.getAll()
+                _uiState.update {
+                    it.copy(
+                        allWallpapers = wallpapers,
+                        categories = categories,
+                        selectedCategory = it.selectedCategory?.takeIf { c -> c in categories },
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = friendlyMessage(e)) }
             }
         }
     }
@@ -60,17 +68,32 @@ class AdminWallpapersViewModel(
 
     fun upload(title: String, category: String, imageUri: Uri) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true) }
-            wallpaperRepository.upload(title, category, imageUri)
-            _uiState.update { it.copy(isSubmitting = false) }
-            refresh()
+            _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
+            try {
+                wallpaperRepository.upload(title, category, imageUri).getOrThrow()
+                _uiState.update { it.copy(isSubmitting = false) }
+                refresh()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSubmitting = false, errorMessage = friendlyMessage(e)) }
+            }
         }
     }
 
     fun delete(id: String) {
         viewModelScope.launch {
-            wallpaperRepository.delete(id)
-            refresh()
+            try {
+                wallpaperRepository.delete(id).getOrThrow()
+                refresh()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = friendlyMessage(e)) }
+            }
         }
     }
+
+    fun consumeError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun friendlyMessage(e: Exception): String =
+        e.message?.takeIf { it.isNotBlank() } ?: "Something went wrong. Please try again."
 }

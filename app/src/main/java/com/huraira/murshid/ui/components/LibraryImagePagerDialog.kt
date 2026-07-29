@@ -33,7 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.LibraryItem
 import com.huraira.murshid.ui.theme.MurshidGold
 import com.huraira.murshid.util.MediaSaver
@@ -89,7 +88,7 @@ private fun LibraryImagePage(item: LibraryItem) {
     var isSaving by remember(item.id) { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AsyncImage(
+        MurshidAsyncImage(
             model = item.imageUrl,
             contentDescription = null,
             contentScale = ContentScale.Fit,

@@ -5,7 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
 import android.provider.MediaStore
-import coil3.ImageLoader
+import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
@@ -17,7 +17,7 @@ object MediaSaver {
     suspend fun getBitmap(context: Context, imageUrl: String): Bitmap? =
         withContext(Dispatchers.IO) {
             try {
-                val loader = ImageLoader(context)
+                val loader = SingletonImageLoader.get(context)
                 val request = ImageRequest.Builder(context)
                     .data(imageUrl)
                     .allowHardware(false)

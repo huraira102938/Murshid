@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,9 +37,13 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +60,7 @@ import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.WallpaperItem
 import com.huraira.murshid.ui.components.CategoryChipsRow
 import com.huraira.murshid.ui.components.ConfirmDeleteDialog
+import com.huraira.murshid.ui.components.FullScreenImagePreviewDialog
 import com.huraira.murshid.ui.components.GoldFilledButton
 import com.huraira.murshid.ui.components.MurshidTopBar
 import com.huraira.murshid.ui.components.WallpaperThumbnail
@@ -73,8 +80,17 @@ fun AdminWallpapersScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showUploadSheet by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<WallpaperItem?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.consumeError()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             MurshidTopBar(
                 title = "Admin · Wallpapers",
@@ -168,6 +184,7 @@ private fun UploadWallpaperSheet(
     var title by remember { mutableStateOf("") }
     var selectedCategory by remember(categories) { mutableStateOf(categories.firstOrNull()) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showFullPreview by remember { mutableStateOf(false) }
 
     val imagePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -199,7 +216,14 @@ private fun UploadWallpaperSheet(
                     .fillMaxWidth()
                     .height(160.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MurshidSurface),
+                    .background(MurshidSurface)
+                    .then(
+                        if (selectedImageUri != null) {
+                            Modifier.clickable { showFullPreview = true }
+                        } else {
+                            Modifier
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 if (selectedImageUri != null) {
@@ -208,6 +232,14 @@ private fun UploadWallpaperSheet(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.Fullscreen,
+                        contentDescription = "Tap to preview full screen",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp)
                     )
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -220,6 +252,14 @@ private fun UploadWallpaperSheet(
                         )
                     }
                 }
+            }
+
+            if (showFullPreview && selectedImageUri != null) {
+                FullScreenImagePreviewDialog(
+                    imageModel = selectedImageUri,
+                    onDismiss = { showFullPreview = false },
+                    simulateWallpaperCrop = true
+                )
             }
 
             GoldFilledButton(

@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -30,9 +32,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +54,7 @@ import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.LibraryContentType
 import com.huraira.murshid.data.model.LibraryItem
 import com.huraira.murshid.ui.components.ConfirmDeleteDialog
+import com.huraira.murshid.ui.components.FullScreenImagePreviewDialog
 import com.huraira.murshid.ui.components.GoldFilledButton
 import com.huraira.murshid.ui.components.GoldOutlinedButton
 import com.huraira.murshid.ui.components.LibraryItemCard
@@ -67,8 +73,17 @@ fun AdminLibraryScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showCreateSheet by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<LibraryItem?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.consumeError()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             MurshidTopBar(
                 title = "Admin · Library",
@@ -105,8 +120,8 @@ fun AdminLibraryScreen(
         CreateLibraryItemSheet(
             isSubmitting = uiState.isSubmitting,
             onDismiss = { showCreateSheet = false },
-            onSubmit = { item ->
-                viewModel.create(item)
+            onSubmit = { type, quoteText, author, imageUri ->
+                viewModel.create(type, quoteText, author, imageUri)
                 showCreateSheet = false
             }
         )
@@ -126,12 +141,13 @@ fun AdminLibraryScreen(
 private fun CreateLibraryItemSheet(
     isSubmitting: Boolean,
     onDismiss: () -> Unit,
-    onSubmit: (LibraryItem) -> Unit
+    onSubmit: (LibraryContentType, String?, String?, Uri?) -> Unit
 ) {
     var selectedType by remember { mutableStateOf(LibraryContentType.QUOTE) }
     var quoteText by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showFullPreview by remember { mutableStateOf(false) }
 
     val imagePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -176,7 +192,14 @@ private fun CreateLibraryItemSheet(
                         .fillMaxWidth()
                         .height(160.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(MurshidSurface),
+                        .background(MurshidSurface)
+                        .then(
+                            if (selectedImageUri != null) {
+                                Modifier.clickable { showFullPreview = true }
+                            } else {
+                                Modifier
+                            }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     if (selectedImageUri != null) {
@@ -185,6 +208,14 @@ private fun CreateLibraryItemSheet(
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.Fullscreen,
+                            contentDescription = "Tap to preview full screen",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(8.dp)
                         )
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -197,6 +228,13 @@ private fun CreateLibraryItemSheet(
                             )
                         }
                     }
+                }
+
+                if (showFullPreview && selectedImageUri != null) {
+                    FullScreenImagePreviewDialog(
+                        imageModel = selectedImageUri,
+                        onDismiss = { showFullPreview = false }
+                    )
                 }
 
                 GoldFilledButton(
@@ -235,13 +273,10 @@ private fun CreateLibraryItemSheet(
                 onClick = {
                     if (canSubmit) {
                         onSubmit(
-                            LibraryItem(
-                                id = "",
-                                type = selectedType,
-                                quoteText = quoteText.trim().ifBlank { null },
-                                author = author.trim().ifBlank { null },
-                                imageUrl = selectedImageUri?.toString()
-                            )
+                            selectedType,
+                            quoteText.trim().ifBlank { null },
+                            author.trim().ifBlank { null },
+                            selectedImageUri
                         )
                     }
                 },

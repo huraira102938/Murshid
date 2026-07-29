@@ -16,7 +16,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,8 +26,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.UpdateItem
+import com.huraira.murshid.ui.components.MurshidAsyncImage
 import com.huraira.murshid.ui.components.MurshidTopBar
 import com.huraira.murshid.ui.theme.MurshidGold
 import com.huraira.murshid.viewmodel.UpdatesViewModel
@@ -38,7 +39,8 @@ fun UpdateDetailScreen(
     onShare: () -> Unit,
     viewModel: UpdatesViewModel = viewModel()
 ) {
-    val update: UpdateItem? = remember(updateId) { viewModel.findById(updateId) }
+    val uiState by viewModel.uiState.collectAsState()
+    val update: UpdateItem? = uiState.updates.firstOrNull { it.id == updateId }
     val context = LocalContext.current
 
     Scaffold(
@@ -58,7 +60,10 @@ fun UpdateDetailScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Update not found.", color = Color.White)
+                Text(
+                    text = if (uiState.isLoading) "Loading…" else "Update not found.",
+                    color = Color.White
+                )
             }
             return@Scaffold
         }
@@ -72,7 +77,7 @@ fun UpdateDetailScreen(
         ) {
             val imageUrl = update.detailImageUrl ?: update.thumbnailUrl
             if (!imageUrl.isNullOrBlank()) {
-                AsyncImage(
+                MurshidAsyncImage(
                     model = imageUrl,
                     contentDescription = update.title,
                     contentScale = ContentScale.Crop,

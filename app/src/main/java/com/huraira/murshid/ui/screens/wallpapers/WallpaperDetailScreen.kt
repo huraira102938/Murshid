@@ -39,10 +39,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.WallpaperItem
 import com.huraira.murshid.ui.components.GoldFilledButton
 import com.huraira.murshid.ui.components.GoldOutlinedButton
+import com.huraira.murshid.ui.components.MurshidAsyncImage
 import com.huraira.murshid.ui.theme.MurshidGold
 import com.huraira.murshid.ui.theme.MurshidSurface
 import com.huraira.murshid.util.MediaSaver
@@ -57,13 +57,16 @@ fun WallpaperDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val wallpapers = uiState.allWallpapers
-    val startIndex = remember(wallpaperId) {
+    val startIndex = remember(wallpaperId, wallpapers) {
         wallpapers.indexOfFirst { it.id == wallpaperId }.coerceAtLeast(0)
     }
 
     if (wallpapers.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Wallpaper not found.", color = Color.White)
+            Text(
+                text = if (uiState.isLoading) "Loading…" else "Wallpaper not found.",
+                color = Color.White
+            )
         }
         return
     }
@@ -136,7 +139,7 @@ private fun WallpaperPage(wallpaper: WallpaperItem) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AsyncImage(
+        MurshidAsyncImage(
             model = wallpaper.imageUrl,
             contentDescription = wallpaper.title,
             contentScale = ContentScale.Crop,

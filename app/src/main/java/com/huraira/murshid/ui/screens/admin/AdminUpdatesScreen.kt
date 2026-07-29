@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -30,9 +32,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +53,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.UpdateItem
 import com.huraira.murshid.ui.components.ConfirmDeleteDialog
+import com.huraira.murshid.ui.components.FullScreenImagePreviewDialog
 import com.huraira.murshid.ui.components.GoldFilledButton
 import com.huraira.murshid.ui.components.MurshidTopBar
 import com.huraira.murshid.ui.components.UpdateListItemCard
@@ -65,8 +71,17 @@ fun AdminUpdatesScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showCreateSheet by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<UpdateItem?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.consumeError()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             MurshidTopBar(
                 title = "Admin · Updates",
@@ -103,8 +118,8 @@ fun AdminUpdatesScreen(
         CreateUpdateSheet(
             isSubmitting = uiState.isSubmitting,
             onDismiss = { showCreateSheet = false },
-            onSubmit = { item ->
-                viewModel.create(item)
+            onSubmit = { title, date, summary, fullContent, detailImageUri, youtubeVideoId ->
+                viewModel.create(title, date, summary, fullContent, detailImageUri, youtubeVideoId)
                 showCreateSheet = false
             }
         )
@@ -124,7 +139,14 @@ fun AdminUpdatesScreen(
 private fun CreateUpdateSheet(
     isSubmitting: Boolean,
     onDismiss: () -> Unit,
-    onSubmit: (UpdateItem) -> Unit
+    onSubmit: (
+        title: String,
+        date: String,
+        summary: String,
+        fullContent: String,
+        detailImageUri: Uri?,
+        youtubeVideoId: String?
+    ) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("") }
@@ -132,6 +154,7 @@ private fun CreateUpdateSheet(
     var fullContent by remember { mutableStateOf("") }
     var youtubeVideoId by remember { mutableStateOf("") }
     var detailImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showFullPreview by remember { mutableStateOf(false) }
 
     val imagePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -208,7 +231,14 @@ private fun CreateUpdateSheet(
                     .fillMaxWidth()
                     .height(140.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MurshidSurface),
+                    .background(MurshidSurface)
+                    .then(
+                        if (detailImageUri != null) {
+                            Modifier.clickable { showFullPreview = true }
+                        } else {
+                            Modifier
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 if (detailImageUri != null) {
@@ -218,10 +248,26 @@ private fun CreateUpdateSheet(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
+                    Icon(
+                        imageVector = Icons.Filled.Fullscreen,
+                        contentDescription = "Tap to preview full screen",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp)
+                    )
                 } else {
                     Icon(Icons.Filled.Image, contentDescription = null, tint = MurshidGold)
                 }
             }
+
+            if (showFullPreview && detailImageUri != null) {
+                FullScreenImagePreviewDialog(
+                    imageModel = detailImageUri,
+                    onDismiss = { showFullPreview = false }
+                )
+            }
+
             GoldFilledButton(
                 text = if (detailImageUri == null) "Choose Image" else "Change Image",
                 onClick = {
@@ -246,16 +292,12 @@ private fun CreateUpdateSheet(
                 onClick = {
                     if (canSubmit) {
                         onSubmit(
-                            UpdateItem(
-                                id = "",
-                                title = title.trim(),
-                                date = date.trim(),
-                                thumbnailUrl = detailImageUri?.toString(),
-                                summary = summary.trim(),
-                                fullContent = fullContent.trim(),
-                                detailImageUrl = detailImageUri?.toString(),
-                                youtubeVideoId = youtubeVideoId.trim().ifBlank { null }
-                            )
+                            title.trim(),
+                            date.trim(),
+                            summary.trim(),
+                            fullContent.trim(),
+                            detailImageUri,
+                            youtubeVideoId.trim().ifBlank { null }
                         )
                     }
                 },

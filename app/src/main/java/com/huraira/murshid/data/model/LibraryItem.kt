@@ -13,6 +13,8 @@ data class LibraryItem(
     val quoteText: String? = null,
     val author: String? = null,
     val imageUrl: String? = null,
+    val thumbnailUrl: String? = null,
     val videoThumbnailUrl: String? = null,
-    val videoUrl: String? = null
+    val videoUrl: String? = null,
+    val createdAt: Long = 0L
 )

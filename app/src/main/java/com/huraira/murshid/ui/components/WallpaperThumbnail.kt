@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.WallpaperItem
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -57,8 +56,8 @@ fun WallpaperThumbnail(
                 onClick = onClick
             )
     ) {
-        AsyncImage(
-            model = wallpaper.imageUrl,
+        MurshidAsyncImage(
+            model = wallpaper.thumbnailUrl.ifBlank { wallpaper.imageUrl },
             contentDescription = wallpaper.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()

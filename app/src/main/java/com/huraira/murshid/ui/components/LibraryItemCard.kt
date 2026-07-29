@@ -46,7 +46,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.LibraryContentType
 import com.huraira.murshid.data.model.LibraryItem
 import com.huraira.murshid.ui.theme.MurshidGold
@@ -61,14 +60,17 @@ fun LibraryItemCard(
     onLongClick: (() -> Unit)? = null,
     onImageClick: (LibraryItem) -> Unit = {}
 ) {
-    val cardModifier = if (onLongClick != null) {
-        modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-    } else {
-        modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+    // For IMAGE / IMAGE_QUOTE, the image fills the entire card, so its own gesture
+    // modifier fully overlaps the outer Card's — an extra gesture modifier on the Card
+    // itself would just get swallowed by the inner one and never fire. So for those two
+    // types, tap + long-press are both handled directly on the image, and the Card gets
+    // no gesture modifier of its own.
+    val imageFillsCard = item.type == LibraryContentType.IMAGE || item.type == LibraryContentType.IMAGE_QUOTE
+
+    val cardModifier = when {
+        imageFillsCard -> modifier.fillMaxWidth()
+        onLongClick != null -> modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
+        else -> modifier.fillMaxWidth().clickable(onClick = onClick)
     }
 
     Card(
@@ -78,8 +80,8 @@ fun LibraryItemCard(
     ) {
         when (item.type) {
             LibraryContentType.QUOTE -> QuoteContent(item)
-            LibraryContentType.IMAGE -> ImageContent(item, onImageClick)
-            LibraryContentType.IMAGE_QUOTE -> ImageQuoteContent(item, onImageClick)
+            LibraryContentType.IMAGE -> ImageContent(item, onImageClick, onLongClick)
+            LibraryContentType.IMAGE_QUOTE -> ImageQuoteContent(item, onImageClick, onLongClick)
             LibraryContentType.VIDEO -> VideoContent(item)
         }
     }
@@ -147,30 +149,40 @@ private fun QuoteContent(item: LibraryItem) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ImageContent(item: LibraryItem, onImageClick: (LibraryItem) -> Unit) {
-    AsyncImage(
-        model = item.imageUrl,
+private fun ImageContent(
+    item: LibraryItem,
+    onImageClick: (LibraryItem) -> Unit,
+    onLongClick: (() -> Unit)?
+) {
+    MurshidAsyncImage(
+        model = item.thumbnailUrl ?: item.imageUrl,
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .clip(RoundedCornerShape(18.dp))
-            .clickable { onImageClick(item) }
+            .combinedClickable(onClick = { onImageClick(item) }, onLongClick = onLongClick)
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ImageQuoteContent(item: LibraryItem, onImageClick: (LibraryItem) -> Unit) {
+private fun ImageQuoteContent(
+    item: LibraryItem,
+    onImageClick: (LibraryItem) -> Unit,
+    onLongClick: (() -> Unit)?
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(0.85f)
-            .clickable { onImageClick(item) }
+            .combinedClickable(onClick = { onImageClick(item) }, onLongClick = onLongClick)
     ) {
-        AsyncImage(
-            model = item.imageUrl,
+        MurshidAsyncImage(
+            model = item.thumbnailUrl ?: item.imageUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -204,7 +216,7 @@ private fun VideoContent(item: LibraryItem) {
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
         ) {
-            AsyncImage(
+            MurshidAsyncImage(
                 model = item.videoThumbnailUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,

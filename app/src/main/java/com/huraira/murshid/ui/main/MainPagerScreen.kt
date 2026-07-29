@@ -77,7 +77,7 @@ fun MainPagerScreen(navController: NavHostController) {
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
-                            scope.launch { pagerState.animateScrollToPage(index) }
+                            scope.launch { pagerState.scrollToPage(index) }
                         },
                         icon = {
                             Icon(

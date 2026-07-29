@@ -1,5 +1,6 @@
 package com.huraira.murshid.viewmodel.admin
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.huraira.murshid.data.model.UpdateItem
@@ -13,7 +14,9 @@ import kotlinx.coroutines.launch
 
 data class AdminUpdatesUiState(
     val updates: List<UpdateItem> = emptyList(),
-    val isSubmitting: Boolean = false
+    val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
+    val errorMessage: String? = null
 )
 
 class AdminUpdatesViewModel(
@@ -29,23 +32,49 @@ class AdminUpdatesViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.update { it.copy(updates = repository.getAll()) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                val updates = repository.getAll()
+                _uiState.update { it.copy(updates = updates, isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = friendlyMessage(e)) }
+            }
         }
     }
 
-    fun create(item: UpdateItem) {
+    fun create(
+        title: String,
+        date: String,
+        summary: String,
+        fullContent: String,
+        detailImageUri: Uri?,
+        youtubeVideoId: String?
+    ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true) }
-            repository.create(item)
-            _uiState.update { it.copy(isSubmitting = false) }
-            refresh()
+            _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
+            val result = repository.create(title, date, summary, fullContent, detailImageUri, youtubeVideoId)
+            _uiState.update {
+                it.copy(isSubmitting = false, errorMessage = result.exceptionOrNull()?.let { e -> friendlyMessage(e) })
+            }
+            if (result.isSuccess) refresh()
         }
     }
 
     fun delete(id: String) {
         viewModelScope.launch {
-            repository.delete(id)
-            refresh()
+            val result = repository.delete(id)
+            if (result.isFailure) {
+                _uiState.update { it.copy(errorMessage = result.exceptionOrNull()?.let { e -> friendlyMessage(e) }) }
+            } else {
+                refresh()
+            }
         }
     }
+
+    fun consumeError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun friendlyMessage(e: Throwable): String =
+        e.message?.takeIf { it.isNotBlank() } ?: "Something went wrong. Please try again."
 }

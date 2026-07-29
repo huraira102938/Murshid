@@ -14,7 +14,9 @@ import kotlinx.coroutines.launch
 data class AdminCategoriesUiState(
     val categories: List<String> = emptyList(),
     val wallpaperCountByCategory: Map<String, Int> = emptyMap(),
+    val isLoading: Boolean = false,
     val isSubmitting: Boolean = false,
+    val errorMessage: String? = null,
     val addErrorMessage: String? = null
 )
 
@@ -32,12 +34,19 @@ class AdminCategoriesViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            val categories = categoryRepository.getAll()
-            val wallpapers = wallpaperRepository.getAll()
-            val counts = categories.associateWith { category ->
-                wallpapers.count { it.category == category }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                val categories = categoryRepository.getAll()
+                val wallpapers = wallpaperRepository.getAll()
+                val counts = categories.associateWith { category ->
+                    wallpapers.count { it.category == category }
+                }
+                _uiState.update {
+                    it.copy(categories = categories, wallpaperCountByCategory = counts, isLoading = false)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = friendlyMessage(e)) }
             }
-            _uiState.update { it.copy(categories = categories, wallpaperCountByCategory = counts) }
         }
     }
 
@@ -46,7 +55,7 @@ class AdminCategoriesViewModel(
             _uiState.update { it.copy(isSubmitting = true, addErrorMessage = null) }
             val result = categoryRepository.add(name)
             _uiState.update {
-                it.copy(isSubmitting = false, addErrorMessage = result.exceptionOrNull()?.message)
+                it.copy(isSubmitting = false, addErrorMessage = result.exceptionOrNull()?.let { e -> friendlyMessage(e) })
             }
             if (result.isSuccess) refresh()
         }
@@ -56,16 +65,27 @@ class AdminCategoriesViewModel(
         _uiState.update { it.copy(addErrorMessage = null) }
     }
 
+    fun consumeError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
     /** [onResult] reports success or a human-readable failure reason (wrong password, etc). */
     fun deleteCategory(name: String, password: String, onResult: (success: Boolean, error: String?) -> Unit) {
         viewModelScope.launch {
-            val result = categoryRepository.delete(name, password)
-            if (result.isSuccess) {
-                refresh()
-                onResult(true, null)
-            } else {
-                onResult(false, result.exceptionOrNull()?.message ?: "Something went wrong.")
+            try {
+                val result = categoryRepository.delete(name, password)
+                if (result.isSuccess) {
+                    refresh()
+                    onResult(true, null)
+                } else {
+                    onResult(false, result.exceptionOrNull()?.let { e -> friendlyMessage(e) } ?: "Something went wrong.")
+                }
+            } catch (e: Exception) {
+                onResult(false, friendlyMessage(e))
             }
         }
     }
+
+    private fun friendlyMessage(e: Throwable): String =
+        e.message?.takeIf { it.isNotBlank() } ?: "Something went wrong. Please try again."
 }

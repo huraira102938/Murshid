@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.huraira.murshid.data.model.UpdateItem
 import com.huraira.murshid.ui.theme.MurshidGold
 import com.huraira.murshid.ui.theme.MurshidSurface
@@ -60,7 +59,7 @@ fun UpdateListItemCard(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             if (!update.thumbnailUrl.isNullOrBlank()) {
-                AsyncImage(
+                MurshidAsyncImage(
                     model = update.thumbnailUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
