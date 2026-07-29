@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// IMPORTANT — read before deploying:
+// Prompt 1 explicitly made the admin flow build-gated instead of login-gated ("no
+// authentication needed"). That means these rules have no `request.auth` to check
+// against for writes. The write rules below are intentionally open so the admin screens
+// keep working, but that is ONLY safe if you also enable Firebase App Check (Play
+// Integrity provider) and turn on App Check *enforcement* for Firestore in the Firebase
+// Console. App Check rejects requests before they ever reach these rules unless they
+// come from your real, signed app binary — which is the actual gate here, not `auth`.
+// This is a manual Console step; it can't be done from source. Do this before shipping
+// any build with the admin flow enabled to anyone outside your own test devices.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /wallpapers/{wallpaperId} {
+      allow get, list: if resource.data.active == true;
+      allow create, update, delete: if true; // gate via App Check — see note above
+    }
+
+    match /libraryItems/{itemId} {
+      allow get, list: if resource.data.active == true;
+      allow create, update, delete: if true; // gate via App Check — see note above
+    }
+
+    match /updates/{updateId} {
+      allow get, list: if resource.data.active == true;
+      allow create, update, delete: if true; // gate via App Check — see note above
+    }
+
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create, delete: if true; // gate via App Check — see note above
+      allow update: if false; // categories are never edited in place, only added/removed
+    }
+
+    // Admin writes a request here; only the Cloud Function (Admin SDK, bypasses rules)
+    // reads/updates it. No client ever needs to read these back.
+    match /notificationRequests/{requestId} {
+      allow create: if true; // gate via App Check — see note above
+      allow get, list, update, delete: if false;
+    }
+  }
+}

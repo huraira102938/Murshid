@@ -1,0 +1,18 @@
+# Copy this file to "local.properties" (already gitignored) and fill in real values.
+# local.properties is never committed — this is the ONLY place R2 credentials should live
+# for local/dev builds. CI builds can instead set these as real environment variables
+# (R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET_NAME) and skip this file —
+# app/build.gradle.kts checks local.properties first, then falls back to the environment.
+
+sdk.dir=/path/to/your/Android/sdk
+
+# --- Cloudflare R2 (S3-compatible object storage) ---
+# Create these under Cloudflare dashboard -> R2 -> Manage R2 API Tokens.
+R2_ACCESS_KEY_ID=your-access-key-id
+R2_SECRET_ACCESS_KEY=your-secret-access-key
+# Account-scoped S3 API endpoint, e.g. https://<account_id>.r2.cloudflarestorage.com
+R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
+R2_BUCKET_NAME=murshid-media
+# Public bucket URL (custom domain or r2.dev subdomain) used to build the image URLs
+# stored in Firestore — this one is NOT secret, just where R2 serves the files from.
+R2_PUBLIC_BASE_URL=https://media.yourdomain.com
