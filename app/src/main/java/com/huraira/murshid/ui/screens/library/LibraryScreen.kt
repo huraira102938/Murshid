@@ -2,6 +2,7 @@ package com.huraira.murshid.ui.screens.library
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +22,8 @@ import com.huraira.murshid.data.model.LibraryContentType
 import com.huraira.murshid.data.model.LibraryItem
 import com.huraira.murshid.ui.components.LibraryImagePagerDialog
 import com.huraira.murshid.ui.components.LibraryItemCard
+import com.huraira.murshid.ui.components.LibraryListShimmer
+import com.huraira.murshid.ui.components.LoadErrorState
 import com.huraira.murshid.ui.components.MurshidTopBar
 import com.huraira.murshid.viewmodel.LibraryViewModel
 
@@ -58,22 +61,36 @@ fun LibraryScreen(
             )
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
-        ) {
-            items(uiState.items, key = { it.id }) { item ->
-                LibraryItemCard(
-                    item = item,
-                    onClick = {
-                        if (item.type == LibraryContentType.VIDEO && !item.videoUrl.isNullOrBlank()) {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(item.videoUrl))
-                            context.startActivity(intent)
-                        }
-                    },
-                    onImageClick = { clicked -> expandedItem = clicked }
+        when {
+            uiState.isLoading && uiState.items.isEmpty() -> {
+                LibraryListShimmer(modifier = Modifier.padding(innerPadding))
+            }
+            uiState.errorMessage != null && uiState.items.isEmpty() -> {
+                LoadErrorState(
+                    message = uiState.errorMessage!!,
+                    onRetry = { viewModel.refresh() },
+                    modifier = Modifier.padding(innerPadding)
                 )
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.padding(innerPadding),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(uiState.items, key = { it.id }) { item ->
+                        LibraryItemCard(
+                            item = item,
+                            onClick = {
+                                if (item.type == LibraryContentType.VIDEO && !item.videoUrl.isNullOrBlank()) {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(item.videoUrl))
+                                    context.startActivity(intent)
+                                }
+                            },
+                            onImageClick = { clicked -> expandedItem = clicked }
+                        )
+                    }
+                }
             }
         }
     }

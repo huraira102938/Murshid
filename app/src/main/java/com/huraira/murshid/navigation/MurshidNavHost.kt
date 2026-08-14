@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -15,6 +17,8 @@ import com.huraira.murshid.ui.main.MainPagerScreen
 import com.huraira.murshid.ui.screens.about.AboutScreen
 import com.huraira.murshid.ui.screens.updates.UpdateDetailScreen
 import com.huraira.murshid.ui.screens.wallpapers.WallpaperDetailScreen
+import com.huraira.murshid.viewmodel.UpdatesViewModel
+import com.huraira.murshid.viewmodel.WallpapersViewModel
 // region ADMIN — remove before Play Store release
 import com.huraira.murshid.ui.screens.admin.AdminCategoriesScreen
 import com.huraira.murshid.ui.screens.admin.AdminHomeScreen
@@ -46,9 +50,16 @@ fun MurshidNavHost(navController: NavHostController) {
             exitTransition = { fadeOut(tween(200)) }
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getString(Screen.WallpaperDetail.ARG_WALLPAPER_ID).orEmpty()
+            // Reuse the same WallpapersViewModel the grid tab already loaded (both are
+            // scoped to the Main route's backstack entry) instead of creating a fresh one
+            // — that fresh instance would otherwise refetch the whole list from Firestore
+            // again just to show a wallpaper the user is already looking at.
+            val mainEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.Main.route) }
+            val sharedWallpapersViewModel: WallpapersViewModel = viewModel(mainEntry)
             WallpaperDetailScreen(
                 wallpaperId = id,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                viewModel = sharedWallpapersViewModel
             )
         }
 
@@ -59,10 +70,14 @@ fun MurshidNavHost(navController: NavHostController) {
             exitTransition = { slideOutHorizontally(tween(200)) { it / 3 } + fadeOut(tween(200)) }
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getString(Screen.UpdateDetail.ARG_UPDATE_ID).orEmpty()
+            // Same sharing trick as WallpaperDetail above.
+            val mainEntry = remember(backStackEntry) { navController.getBackStackEntry(Screen.Main.route) }
+            val sharedUpdatesViewModel: UpdatesViewModel = viewModel(mainEntry)
             UpdateDetailScreen(
                 updateId = id,
                 onBack = { navController.popBackStack() },
-                onShare = {}
+                onShare = {},
+                viewModel = sharedUpdatesViewModel
             )
         }
 

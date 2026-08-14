@@ -67,7 +67,11 @@ fun WallpaperThumbnail(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                        colorStops = arrayOf(
+                            0.0f to Color.Transparent,
+                            0.55f to Color.Transparent,
+                            1.0f to Color.Black.copy(alpha = 0.75f)
+                        )
                     )
                 )
         )

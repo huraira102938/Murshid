@@ -19,8 +19,8 @@ object ImageCompressor {
 
     data class Variant(val bytes: ByteArray, val contentType: String = "image/webp")
 
-    private const val THUMB_MAX_DIMENSION = 480
-    private const val THUMB_TARGET_BYTES = 80 * 1024
+    private const val THUMB_MAX_DIMENSION = 720
+    private const val THUMB_TARGET_BYTES = 160 * 1024
 
     private const val FULL_MAX_DIMENSION = 1600
     private const val FULL_TARGET_BYTES = 600 * 1024
@@ -94,7 +94,7 @@ object ImageCompressor {
     }
 
     /** Compresses to WebP, stepping quality down until under [targetBytes] or the quality floor. */
-    private fun compressToTargetSize(bitmap: Bitmap, targetBytes: Int, minQuality: Int = 40): ByteArray {
+    private fun compressToTargetSize(bitmap: Bitmap, targetBytes: Int, minQuality: Int = 55): ByteArray {
         var quality = 90
         var lastBytes: ByteArray = compress(bitmap, quality)
         while (lastBytes.size > targetBytes && quality > minQuality) {

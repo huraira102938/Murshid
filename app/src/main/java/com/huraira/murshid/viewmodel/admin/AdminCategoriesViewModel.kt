@@ -16,6 +16,7 @@ data class AdminCategoriesUiState(
     val wallpaperCountByCategory: Map<String, Int> = emptyMap(),
     val isLoading: Boolean = false,
     val isSubmitting: Boolean = false,
+    val isReordering: Boolean = false,
     val errorMessage: String? = null,
     val addErrorMessage: String? = null
 )
@@ -82,6 +83,27 @@ class AdminCategoriesViewModel(
                 }
             } catch (e: Exception) {
                 onResult(false, friendlyMessage(e))
+            }
+        }
+    }
+
+    fun moveUp(name: String) = reorder { categoryRepository.moveUp(name) }
+
+    fun moveDown(name: String) = reorder { categoryRepository.moveDown(name) }
+
+    private fun reorder(action: suspend () -> Result<Unit>) {
+        // Guard against rapid double-taps firing overlapping swaps against stale data.
+        if (_uiState.value.isReordering) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isReordering = true) }
+            val result = action()
+            if (result.isFailure) {
+                _uiState.update {
+                    it.copy(isReordering = false, errorMessage = result.exceptionOrNull()?.let { e -> friendlyMessage(e) })
+                }
+            } else {
+                refresh()
+                _uiState.update { it.copy(isReordering = false) }
             }
         }
     }

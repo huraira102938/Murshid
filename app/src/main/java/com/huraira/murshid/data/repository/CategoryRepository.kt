@@ -1,6 +1,7 @@
 package com.huraira.murshid.data.repository
 
 import com.google.firebase.Firebase
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.firestore
 import com.huraira.murshid.data.remote.FirestoreSchema
 import com.huraira.murshid.data.remote.R2Client
@@ -15,6 +16,9 @@ import kotlinx.coroutines.withContext
  * including their R2 image files — so it's gated behind a password and refuses to drop
  * the last remaining category.
  *
+ * Categories also carry an admin-controlled display order — this is what determines
+ * which category chip appears first for end users on the Wallpapers screen.
+ *
  * TODO(hardening): move the password check server-side (e.g. a callable Cloud Function)
  * before wide release — this is only acceptable because the whole admin flow is built
  * out of the public Play Store build, gated by the `// region ADMIN` blocks.
@@ -23,6 +27,8 @@ interface CategoryRepository {
     suspend fun getAll(): List<String>
     suspend fun add(name: String): Result<Unit>
     suspend fun delete(name: String, password: String): Result<Unit>
+    suspend fun moveUp(name: String): Result<Unit>
+    suspend fun moveDown(name: String): Result<Unit>
 }
 
 class FirestoreCategoryRepository : CategoryRepository {
@@ -30,8 +36,22 @@ class FirestoreCategoryRepository : CategoryRepository {
     private val categoriesCollection = Firebase.firestore.collection(FirestoreSchema.CATEGORIES)
     private val wallpapersCollection = Firebase.firestore.collection(FirestoreSchema.WALLPAPERS)
 
+    /**
+     * Sorted client-side (not via Firestore's .orderBy("order")) on purpose — Firestore's
+     * orderBy excludes documents missing that field entirely, which would silently drop
+     * any category created before this ordering feature existed. Docs without an explicit
+     * order fall back to the end, tie-broken by creation time.
+     */
+    private suspend fun getOrderedDocs(): List<DocumentSnapshot> =
+        categoriesCollection.get().await().documents.sortedWith(
+            compareBy(
+                { it.getLong("order") ?: Long.MAX_VALUE },
+                { it.getLong("createdAt") ?: 0L }
+            )
+        )
+
     override suspend fun getAll(): List<String> = withContext(Dispatchers.IO) {
-        categoriesCollection.get().await().documents.map { it.id }.sorted()
+        getOrderedDocs().map { it.id }
     }
 
     override suspend fun add(name: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -44,7 +64,13 @@ class FirestoreCategoryRepository : CategoryRepository {
             if (docRef.get().await().exists()) {
                 return@withContext Result.failure(IllegalArgumentException("That category already exists."))
             }
-            docRef.set(mapOf("createdAt" to System.currentTimeMillis())).await()
+            val existingCount = categoriesCollection.get().await().documents.size
+            docRef.set(
+                mapOf(
+                    "createdAt" to System.currentTimeMillis(),
+                    "order" to existingCount.toLong()
+                )
+            ).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -83,6 +109,41 @@ class FirestoreCategoryRepository : CategoryRepository {
             val batch = Firebase.firestore.batch()
             taggedWallpapers.documents.forEach { doc -> batch.delete(doc.reference) }
             batch.delete(categoriesCollection.document(name))
+            batch.commit().await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun moveUp(name: String): Result<Unit> = swapOrder(name, direction = -1)
+
+    override suspend fun moveDown(name: String): Result<Unit> = swapOrder(name, direction = 1)
+
+    private suspend fun swapOrder(name: String, direction: Int): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val ordered = getOrderedDocs()
+            val index = ordered.indexOfFirst { it.id == name }
+            if (index == -1) {
+                return@withContext Result.failure(IllegalStateException("Category not found."))
+            }
+            val swapIndex = index + direction
+            if (swapIndex !in ordered.indices) {
+                // Already at the top/bottom — nothing to do, not an error.
+                return@withContext Result.success(Unit)
+            }
+
+            val currentDoc = ordered[index]
+            val swapDoc = ordered[swapIndex]
+            // Fall back to the current list position if a doc never had an explicit
+            // order field (pre-migration categories) so the swap still makes sense.
+            val currentOrder = currentDoc.getLong("order") ?: index.toLong()
+            val swapOrder = swapDoc.getLong("order") ?: swapIndex.toLong()
+
+            val batch = Firebase.firestore.batch()
+            batch.update(currentDoc.reference, "order", swapOrder)
+            batch.update(swapDoc.reference, "order", currentOrder)
             batch.commit().await()
 
             Result.success(Unit)

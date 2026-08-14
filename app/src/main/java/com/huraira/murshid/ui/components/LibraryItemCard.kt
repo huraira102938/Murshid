@@ -156,16 +156,21 @@ private fun ImageContent(
     onImageClick: (LibraryItem) -> Unit,
     onLongClick: (() -> Unit)?
 ) {
-    MurshidAsyncImage(
-        model = item.thumbnailUrl ?: item.imageUrl,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .clip(RoundedCornerShape(18.dp))
+            .background(MurshidSurface)
             .combinedClickable(onClick = { onImageClick(item) }, onLongClick = onLongClick)
-    )
+    ) {
+        MurshidAsyncImage(
+            model = item.thumbnailUrl ?: item.imageUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -179,12 +184,13 @@ private fun ImageQuoteContent(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(0.85f)
+            .background(MurshidSurface)
             .combinedClickable(onClick = { onImageClick(item) }, onLongClick = onLongClick)
     ) {
         MurshidAsyncImage(
             model = item.thumbnailUrl ?: item.imageUrl,
             contentDescription = null,
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
         Box(
@@ -192,7 +198,11 @@ private fun ImageQuoteContent(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
+                        colorStops = arrayOf(
+                            0.0f to Color.Transparent,
+                            0.55f to Color.Transparent,
+                            1.0f to Color.Black.copy(alpha = 0.8f)
+                        )
                     )
                 )
         )

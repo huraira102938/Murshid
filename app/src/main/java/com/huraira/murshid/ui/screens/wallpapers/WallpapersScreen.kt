@@ -16,7 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.huraira.murshid.ui.components.CategoryChipsRow
+import com.huraira.murshid.ui.components.LoadErrorState
 import com.huraira.murshid.ui.components.MurshidTopBar
+import com.huraira.murshid.ui.components.WallpaperGridShimmer
 import com.huraira.murshid.ui.components.WallpaperThumbnail
 import com.huraira.murshid.viewmodel.WallpapersViewModel
 
@@ -44,31 +46,45 @@ fun WallpapersScreen(
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            if (uiState.categories.isNotEmpty()) {
-                CategoryChipsRow(
-                    categories = uiState.categories,
-                    selected = uiState.selectedCategory,
-                    onSelect = { viewModel.selectCategory(it) },
-                    modifier = Modifier.padding(vertical = 12.dp)
+        when {
+            uiState.isLoading && uiState.allWallpapers.isEmpty() -> {
+                WallpaperGridShimmer(modifier = Modifier.padding(innerPadding))
+            }
+            uiState.errorMessage != null && uiState.allWallpapers.isEmpty() -> {
+                LoadErrorState(
+                    message = uiState.errorMessage!!,
+                    onRetry = { viewModel.refresh() },
+                    modifier = Modifier.padding(innerPadding)
                 )
             }
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(uiState.visibleWallpapers, key = { it.id }) { wallpaper ->
-                    WallpaperThumbnail(
-                        wallpaper = wallpaper,
-                        onClick = { onWallpaperClick(wallpaper.id) }
-                    )
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    if (uiState.categories.isNotEmpty()) {
+                        CategoryChipsRow(
+                            categories = uiState.categories,
+                            selected = uiState.selectedCategory,
+                            onSelect = { viewModel.selectCategory(it) },
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
+                    }
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.visibleWallpapers, key = { it.id }) { wallpaper ->
+                            WallpaperThumbnail(
+                                wallpaper = wallpaper,
+                                onClick = { onWallpaperClick(wallpaper.id) }
+                            )
+                        }
+                    }
                 }
             }
         }

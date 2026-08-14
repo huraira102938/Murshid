@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -87,7 +89,7 @@ fun AdminCategoriesScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Categories apply only to Wallpapers. At least one must always exist.",
+                    text = "Categories apply only to Wallpapers. At least one must always exist. Use the arrows to change which category appears first for users.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MurshidGold.copy(alpha = 0.8f)
                 )
@@ -126,7 +128,7 @@ fun AdminCategoriesScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(uiState.categories, key = { it }) { category ->
+                itemsIndexed(uiState.categories, key = { _, category -> category }) { index, category ->
                     val count = uiState.wallpaperCountByCategory[category] ?: 0
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -136,9 +138,31 @@ fun AdminCategoriesScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Column {
+                                IconButton(
+                                    onClick = { viewModel.moveUp(category) },
+                                    enabled = index > 0 && !uiState.isReordering
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.KeyboardArrowUp,
+                                        contentDescription = "Move $category up",
+                                        tint = if (index > 0) MurshidGold else MurshidGold.copy(alpha = 0.25f)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { viewModel.moveDown(category) },
+                                    enabled = index < uiState.categories.lastIndex && !uiState.isReordering
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.KeyboardArrowDown,
+                                        contentDescription = "Move $category down",
+                                        tint = if (index < uiState.categories.lastIndex) MurshidGold else MurshidGold.copy(alpha = 0.25f)
+                                    )
+                                }
+                            }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = category,
